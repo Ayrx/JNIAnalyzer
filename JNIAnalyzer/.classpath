@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="Ghidra 8051 scripts"/>
-	<classpathentry kind="src" path="Ghidra Base scripts"/>
-	<classpathentry kind="src" path="Ghidra BytePatterns scripts"/>
-	<classpathentry kind="src" path="Ghidra DATA scripts"/>
-	<classpathentry kind="src" path="Ghidra Decompiler scripts"/>
-	<classpathentry kind="src" path="Ghidra FileFormats scripts"/>
-	<classpathentry kind="src" path="Ghidra FunctionID scripts"/>
-	<classpathentry kind="src" path="Ghidra GnuDemangler scripts"/>
-	<classpathentry kind="src" path="Ghidra PIC scripts"/>
-	<classpathentry kind="src" path="Ghidra Python scripts"/>
-	<classpathentry kind="src" path="Ghidra VersionTracking scripts"/>
-	<classpathentry kind="src" path="Home scripts"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/GhidraDev_java-1.11.0-openjdk-amd64"/>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="src/main/help"/>
+	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" path="ghidra_scripts"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/GhidraDev_java-1.11.0-openjdk-amd64">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="/home/ayrx/tools/ghidra_9.0.2/Ghidra/Processors/68000/lib/68000.jar" sourcepath="/home/ayrx/tools/ghidra_9.0.2/Ghidra/Processors/68000/lib/68000-src.zip">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:file:/home/ayrx/tools/ghidra_9.0.2/docs/GhidraAPI_javadoc.zip!/api/"/>
@@ -413,5 +409,6 @@
 			<attribute name="javadoc_location" value="jar:file:/home/ayrx/tools/ghidra_9.0.2/docs/GhidraAPI_javadoc.zip!/api/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/gson-2.8.5.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
