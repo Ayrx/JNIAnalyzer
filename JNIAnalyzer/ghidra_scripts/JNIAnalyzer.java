@@ -1,8 +1,6 @@
-//Applies the standard JNI parameter types to the `JNI_OnLoad` function
-//as well as all functions starting with `Java_`.
+//This script reads the output of `FindNativeJNIMethods.jar` and applies the
+//function signature to all matching functions.
 //
-//`Java_` functions with less than two parameters are left untouched.
-//The appropriate function parameters should be applied manually to them.
 //@author Ayrx
 //@category JNI
 //@keybinding 
