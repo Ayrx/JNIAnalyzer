@@ -2,3 +2,5 @@
 /dist/
 /build/
 /.gradle/
+.antProperties.xml
+/.settings/
