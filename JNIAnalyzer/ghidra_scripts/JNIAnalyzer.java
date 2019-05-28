@@ -62,11 +62,6 @@ public class JNIAnalyzer extends GhidraScript {
     	JsonReader reader = new JsonReader(new FileReader(infoFile));
 
     	NativeMethodsList methodsList = gson.fromJson(reader, NativeMethodsList.class);
-    	for (MethodInformation method : methodsList.methods) {
-    		println(method.methodName);
-    		println(method.argumentTypes.get(0));
-    		break;
-    	}
     		
     	println("[+] Enumerating JNI functions...");
     	HashMap<String, Function> functions = new HashMap<String, Function>();
