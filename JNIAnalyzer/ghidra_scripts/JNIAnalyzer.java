@@ -47,6 +47,7 @@ public class JNIAnalyzer extends GhidraScript {
 	private class MethodInformation {
 		private String methodName;
 		private ArrayList<String> argumentTypes;
+		private String returnType;
 	}
 	
 	private class NativeMethodsList {
@@ -116,7 +117,12 @@ public class JNIAnalyzer extends GhidraScript {
 				    );
     			}
 
-				f.updateFunction(null, null, 
+    			Parameter returnType = new ReturnParameterImpl(
+					this.manager.getDataType("/jni_all.h/" + method.returnType),
+					this.currentProgram
+				);
+
+    			f.updateFunction(null, returnType, 
     					Function.FunctionUpdateType.DYNAMIC_STORAGE_FORMAL_PARAMS, true, SourceType.USER_DEFINED, params);    			
     		}
     	}  	
