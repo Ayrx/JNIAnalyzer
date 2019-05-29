@@ -153,5 +153,7 @@ public class JNIAnalyzer extends GhidraScript {
 		Parameter arg0 = function.getParameter(0);
 		arg0.setName("vm", SourceType.USER_DEFINED);
 		arg0.setDataType(this.manager.getDataType("/jni_all.h/JavaVM *"), SourceType.USER_DEFINED);
+
+		function.setReturnType(this.manager.getDataType("/jni_all.h/jint"), SourceType.USER_DEFINED);
 	}
 }
