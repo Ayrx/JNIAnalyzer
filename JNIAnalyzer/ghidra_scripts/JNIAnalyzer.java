@@ -60,11 +60,19 @@ public class JNIAnalyzer extends GhidraScript {
 
 		println("[+] Enumerating JNI functions...");
 		HashMap<String, Function> functions = new HashMap<String, Function>();
+		ArrayList<String> ignoredFunctions = new ArrayList<String>();
+
 		Function function = this.getFirstFunction();
 		while (function != null) {
 			if (function.getName().startsWith("Java_")) {
-				functions.put(function.getName(), function);
-				println(function.getName());
+
+				String comment = function.getComment();
+				if (comment != null && comment.contains("JNIAnalyzer:IGNORE")) {
+					ignoredFunctions.add(function.getName());
+				} else {
+					functions.put(function.getName(), function);
+					println(function.getName());
+				}
 			}
 
 			if (function.getName().equals("JNI_OnLoad")) {
@@ -74,6 +82,11 @@ public class JNIAnalyzer extends GhidraScript {
 			function = this.getFunctionAfter(function);
 		}
 		println("Total JNI functions found: " + functions.size());
+		println("Ignored JNI functions:");
+		for (String name : ignoredFunctions) {
+			println(name);
+		}
+		println();
 
 		println("[+] Applying function signatures...");
 		for (MethodInformation method : methodsList.methods) {
