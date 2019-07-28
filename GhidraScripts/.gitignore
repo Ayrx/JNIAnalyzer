@@ -1,8 +1,0 @@
-/bin/
-/dist/
-/build/
-/.gradle/
-.antProperties.xml
-/.settings/
-.classpath
-.project

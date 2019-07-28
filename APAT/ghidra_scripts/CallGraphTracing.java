@@ -9,7 +9,7 @@
 //call depth can be controlled by changing the `searchDepth` variable.
 //
 //@author Ayrx
-//@category CUSTOM
+//@category APAT
 //@keybinding
 //@menupath
 //@toolbar
@@ -17,7 +17,6 @@
 import java.util.ArrayDeque;
 import java.util.LinkedList;
 
-import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionManager;
@@ -27,8 +26,6 @@ public class CallGraphTracing extends GhidraScript {
 	String sourceFuncName = "main";
 	String sinkFuncName = "target";
 	int searchDepth = 10;
-
-	private DecompInterface decomplib;
 
 	@Override
 	public void run() throws Exception {
