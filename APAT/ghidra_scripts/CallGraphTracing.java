@@ -19,7 +19,7 @@ import java.util.LinkedList;
 
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.listing.Function;
-import ghidra.program.model.listing.FunctionManager;
+import me.ayrx.apat.utils.FunctionMap;
 
 public class CallGraphTracing extends GhidraScript {
 
@@ -30,23 +30,9 @@ public class CallGraphTracing extends GhidraScript {
 	@Override
 	public void run() throws Exception {
 
-		Function sourceFunc = null;
-		Function sinkFunc = null;
-
-		FunctionManager manager = this.currentProgram.getFunctionManager();
-		for (Function f : manager.getFunctions(true)) {
-			if (f.getName().equals(sourceFuncName)) {
-				sourceFunc = f;
-			}
-
-			if (f.getName().equals(sinkFuncName)) {
-				sinkFunc = f;
-			}
-
-			if (sourceFunc != null && sinkFunc != null) {
-				break;
-			}
-		}
+		FunctionMap funcMap = new FunctionMap(this.currentProgram);
+		Function sourceFunc = funcMap.get(sourceFuncName);
+		Function sinkFunc = funcMap.get(sinkFuncName);
 
 		if (sourceFunc == null || sinkFunc == null) {
 			println("[+] Unable to find sink or source function.");
