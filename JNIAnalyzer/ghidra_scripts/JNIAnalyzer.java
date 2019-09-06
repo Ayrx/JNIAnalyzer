@@ -11,17 +11,18 @@
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
+import generic.jar.ResourceFile;
 import ghidra.app.plugin.core.datamgr.archive.Archive;
 import ghidra.app.plugin.core.datamgr.archive.DuplicateIdException;
 import ghidra.app.script.GhidraScript;
 import ghidra.app.services.DataTypeManagerService;
+import ghidra.framework.Application;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.data.DataTypeManager;
 import ghidra.program.model.listing.Function;
@@ -140,10 +141,8 @@ public class JNIAnalyzer extends GhidraScript {
 		}
 
 		// If an existing archive isn't found, open it from the file.
-		URL jniArchiveURL = ClassLoader.getSystemClassLoader().getResource("jni_all.gdt");
-		File jniArchiveFile = new File(jniArchiveURL.getFile());
-
-		Archive jniArchive = service.openArchive(jniArchiveFile, false);
+		ResourceFile jniArchiveFile = Application.getModuleDataFile("JNIAnalyzer", "jni_all.gdt");
+		Archive jniArchive = service.openArchive(jniArchiveFile.getFile(true), false);
 		return jniArchive.getDataTypeManager();
 	}
 
