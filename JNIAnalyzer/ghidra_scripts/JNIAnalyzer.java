@@ -157,15 +157,18 @@ public class JNIAnalyzer extends GhidraScript {
 
 	private String generateNativeMethodName(MethodInformation methodInfo, boolean isOverloaded) {
 		String methodName = methodInfo.methodName;
+		methodName = methodName.replaceAll("_", "_1");
+
 		StringBuilder sb = new StringBuilder();
 
 		for (int offset = 0; offset < methodName.length();) {
 			int codepoint = methodName.codePointAt(offset);
 
-			// If codepoint is ASCII...
+			// If codepoint is ASCII:
 			if (codepoint >= 0 && codepoint <= 127) {
 				sb.append((char) codepoint);
 			} else {
+				// If unicode, convert e.g. character \u8c22 to _08c22
 				sb.append("_0");
 				sb.append(String.format("%4s", Integer.toHexString(codepoint)).replace(' ', '0'));
 			}
@@ -181,6 +184,7 @@ public class JNIAnalyzer extends GhidraScript {
 		}
 
 		methodName = "Java_" + String.join("_", methodNameSplit);
+		println("[-] " + methodName);
 		return methodName;
 	}
 }
