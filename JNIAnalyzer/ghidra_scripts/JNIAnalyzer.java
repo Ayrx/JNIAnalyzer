@@ -91,9 +91,8 @@ public class JNIAnalyzer extends GhidraScript {
 
 		println("[+] Applying function signatures...");
 		for (MethodInformation method : methodsList.methods) {
-			String methodName = method.methodName;
-			String[] methodNameSplit = methodName.split("\\.");
-			methodName = "Java_" + String.join("_", methodNameSplit);
+
+			String methodName = this.generateNativeMethodName(method, false);
 
 			if (functions.containsKey(methodName)) {
 				Function f = functions.get(methodName);
@@ -154,5 +153,34 @@ public class JNIAnalyzer extends GhidraScript {
 		arg0.setDataType(this.manager.getDataType("/jni_all.h/JavaVM *"), SourceType.USER_DEFINED);
 
 		function.setReturnType(this.manager.getDataType("/jni_all.h/jint"), SourceType.USER_DEFINED);
+	}
+
+	private String generateNativeMethodName(MethodInformation methodInfo, boolean isOverloaded) {
+		String methodName = methodInfo.methodName;
+		StringBuilder sb = new StringBuilder();
+
+		for (int offset = 0; offset < methodName.length();) {
+			int codepoint = methodName.codePointAt(offset);
+
+			// If codepoint is ASCII...
+			if (codepoint >= 0 && codepoint <= 127) {
+				sb.append((char) codepoint);
+			} else {
+				sb.append("_0");
+				sb.append(String.format("%4s", Integer.toHexString(codepoint)).replace(' ', '0'));
+			}
+
+			offset += Character.charCount(codepoint);
+		}
+
+		String[] methodNameSplit = sb.toString().split("\\.");
+
+		if (isOverloaded) {
+			println("generateNativeMethodName - isOverloaded not implemented yet.");
+			return null;
+		}
+
+		methodName = "Java_" + String.join("_", methodNameSplit);
+		return methodName;
 	}
 }
