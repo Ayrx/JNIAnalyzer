@@ -24,16 +24,6 @@ public class RegisterNatives extends GhidraScript {
 
 	private DecompInterface decomplib;
 
-	private class PcodeVarnodeTuple {
-		public PcodeOpAST pcode;
-		public VarnodeAST varnode;
-
-		public PcodeVarnodeTuple(PcodeOpAST p, VarnodeAST v) {
-			this.pcode = p;
-			this.varnode = v;
-		}
-	}
-
 	@Override
 	public void run() throws Exception {
 		this.decomplib = DecompilerHelper.defaultDecompiler();
@@ -48,7 +38,7 @@ public class RegisterNatives extends GhidraScript {
 		Iterator<PcodeOpAST> ops = hFunction.getPcodeOps();
 		ArrayList<PcodeOpAST> registerNativesList = this.findRegisterNatives(ops);
 
-		println(String.valueOf(registerNativesList.size()));
+		println("[+] Found " + String.valueOf(registerNativesList.size()) + " calls to RegisterNatives");
 	}
 
 	private ArrayList<PcodeOpAST> findRegisterNatives(Iterator<PcodeOpAST> ops) {
@@ -58,10 +48,10 @@ public class RegisterNatives extends GhidraScript {
 			PcodeOpAST pcodeOpAST = ops.next();
 
 			if (pcodeOpAST.getOpcode() == PcodeOp.CALLIND) {
-				ArrayList<PcodeVarnodeTuple> list = new ArrayList<PcodeVarnodeTuple>();
+				ArrayList<PcodeOpAST> list = new ArrayList<PcodeOpAST>();
 
 				VarnodeAST node = (VarnodeAST) pcodeOpAST.getInput(0);
-				list.add(new PcodeVarnodeTuple(pcodeOpAST, node));
+				list.add(pcodeOpAST);
 
 				while (true) {
 					PcodeOpAST p = (PcodeOpAST) node.getDef();
@@ -78,18 +68,17 @@ public class RegisterNatives extends GhidraScript {
 						return null;
 					}
 
-					list.add(new PcodeVarnodeTuple(p, node));
+					list.add(p);
 					if (node.getHigh().getDataType().toString().equals("JNIEnv *")) {
 						break;
 					}
 				}
 
-				for (PcodeVarnodeTuple t : list) {
-					PcodeOpAST p = t.pcode;
+				for (PcodeOpAST p : list) {
 					// 0x35c is the offset of RegisterNatives from JNIEnv. Reference:
 					// https://docs.google.com/spreadsheets/d/1yqjFaY7mqyVIDs5jNjGLT-G8pUaRATzHWGFUgpdJRq8/edit?usp=sharing
 					if (p.getOpcode() == PcodeOp.PTRSUB && p.getInput(1).getOffset() == 0x35c) {
-						registerNativesList.add(list.get(0).pcode);
+						registerNativesList.add(list.get(0));
 					}
 				}
 			}
