@@ -45,7 +45,17 @@ public class RegisterNatives extends GhidraScript {
 		HighFunction hFunction = dRes.getHighFunction();
 
 		Iterator<PcodeOpAST> ops = hFunction.getPcodeOps();
-		ArrayList<PcodeOpAST> registerNativesList = this.findRegisterNatives(ops);
+		ArrayList<PcodeOpAST> registerNativesList = new ArrayList<PcodeOpAST>();
+
+		while (ops.hasNext() && !monitor.isCancelled()) {
+			PcodeOpAST pcodeOpAST = ops.next();
+
+			if (pcodeOpAST.getOpcode() == PcodeOp.CALLIND) {
+				if (this.checkRegisterNatives((VarnodeAST) pcodeOpAST.getInput(0))) {
+					registerNativesList.add(pcodeOpAST);
+				}
+			}
+		}
 
 		println("[+] Found " + String.valueOf(registerNativesList.size()) + " calls to RegisterNatives");
 
@@ -95,51 +105,36 @@ public class RegisterNatives extends GhidraScript {
 		}
 	}
 
-	private ArrayList<PcodeOpAST> findRegisterNatives(Iterator<PcodeOpAST> ops) throws UnsupportedOperationException {
-		ArrayList<PcodeOpAST> registerNativesList = new ArrayList<PcodeOpAST>();
-
-		while (ops.hasNext() && !monitor.isCancelled()) {
-			PcodeOpAST pcodeOpAST = ops.next();
-
-			if (pcodeOpAST.getOpcode() == PcodeOp.CALLIND) {
-				ArrayList<PcodeOpAST> list = new ArrayList<PcodeOpAST>();
-
-				VarnodeAST node = (VarnodeAST) pcodeOpAST.getInput(0);
-				list.add(pcodeOpAST);
-
-				while (true) {
-					PcodeOpAST p = (PcodeOpAST) node.getDef();
-
-					switch (p.getOpcode()) {
-					case PcodeOp.LOAD:
-						node = (VarnodeAST) p.getInput(1);
-						break;
-					case PcodeOp.PTRSUB:
-						node = (VarnodeAST) p.getInput(0);
-						break;
-					default:
-						throw new UnsupportedOperationException("Unrecognized op: " + p.getMnemonic());
-					}
-
-					list.add(p);
-					if (node.getHigh().getDataType().toString().equals("JNIEnv *")) {
-						break;
-					}
-				}
-
-				for (PcodeOpAST p : list) {
-					// We definitely want to change this to actually walk down the AST instead of
-					// assuming there is only one PTRSUB once we account for more P-Code opcodes.
-					//
-					// 0x35c is the offset of RegisterNatives from JNIEnv. Reference:
-					// https://docs.google.com/spreadsheets/d/1yqjFaY7mqyVIDs5jNjGLT-G8pUaRATzHWGFUgpdJRq8/edit?usp=sharing
-					if (p.getOpcode() == PcodeOp.PTRSUB && p.getInput(1).getOffset() == 0x35c) {
-						registerNativesList.add(list.get(0));
-					}
-				}
-			}
+	private boolean checkRegisterNatives(VarnodeAST node) throws UnsupportedOperationException {
+		if (node.isConstant()) {
+			throw new UnsupportedOperationException(
+					"Something went wrong. There should not be a constant Varnode here.");
 		}
 
-		return registerNativesList;
+		// TODO: There is definitely a more appropriate way than a string comparison
+		// here...
+		if (node.getHigh().getDataType().toString().equals("JNIEnv *")) {
+			return true;
+		}
+
+		PcodeOpAST parent = (PcodeOpAST) node.getDef();
+
+		// If a Varnode is a top level one (i.e. no parent) and hasn't satisfied the
+		// DataType == JNIENv * check yet, it probably isn't a RegisterNative call.
+		if (parent == null) {
+			return false;
+		}
+
+		switch (parent.getOpcode()) {
+		case PcodeOp.LOAD:
+			return this.checkRegisterNatives((VarnodeAST) parent.getInput(1));
+		case PcodeOp.PTRSUB:
+			boolean isJNIEnv = this.checkRegisterNatives((VarnodeAST) parent.getInput(0));
+			// 0x35c is the offset of RegisterNatives from JNIEnv. Reference:
+			// https://docs.google.com/spreadsheets/d/1yqjFaY7mqyVIDs5jNjGLT-G8pUaRATzHWGFUgpdJRq8/edit?usp=sharing
+			return (isJNIEnv && parent.getInput(1).getOffset() == 0x35c);
+		default:
+			throw new UnsupportedOperationException("Unrecognized op: " + parent.getMnemonic());
+		}
 	}
 }
