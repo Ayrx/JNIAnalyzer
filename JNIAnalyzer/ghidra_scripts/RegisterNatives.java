@@ -41,7 +41,6 @@ public class RegisterNatives extends GhidraScript {
 			println("[-] Error: Please import jni_all.h first.");
 		}
 		DataType jniNativeMethodType = d[0];
-		println(String.valueOf(this.currentProgram.getDefaultPointerSize()));
 
 		this.decomplib = DecompilerHelper.defaultDecompiler();
 		this.decomplib.openProgram(this.currentProgram);
