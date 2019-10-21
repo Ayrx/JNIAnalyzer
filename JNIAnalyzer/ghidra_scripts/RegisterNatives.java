@@ -14,6 +14,7 @@ import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.decompiler.DecompileResults;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.data.DataType;
 import ghidra.program.model.listing.Data;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.pcode.HighFunction;
@@ -35,6 +36,13 @@ public class RegisterNatives extends GhidraScript {
 
 	@Override
 	public void run() throws Exception {
+		DataType[] d = this.getDataTypes("JNINativeMethod");
+		if (d.length != 1) {
+			println("[-] Error: Please import jni_all.h first.");
+		}
+		DataType jniNativeMethodType = d[0];
+		println(String.valueOf(this.currentProgram.getDefaultPointerSize()));
+
 		this.decomplib = DecompilerHelper.defaultDecompiler();
 		this.decomplib.openProgram(this.currentProgram);
 
@@ -60,11 +68,25 @@ public class RegisterNatives extends GhidraScript {
 		println("[+] Found " + String.valueOf(registerNativesList.size()) + " calls to RegisterNatives");
 
 		for (PcodeOpAST pc : registerNativesList) {
-			println(pc.toString());
-
 			VarnodeAST node = (VarnodeAST) pc.getInput(3);
 			Address methodPtr = this.toAddr(this.processVarnode(node));
-			println(methodPtr.toString());
+			println("[+] Applying JNiNativeMethod datatype to: " + methodPtr.toString());
+
+			node = (VarnodeAST) pc.getInput(4);
+			if (!node.isConstant()) {
+				println("[-] Error: nMethods varnode is not a constant.");
+				continue;
+			}
+			long nMethods = node.getOffset();
+
+			long offset = (jniNativeMethodType.getLength() * nMethods) - this.currentProgram.getDefaultPointerSize();
+			this.clearListing(methodPtr, methodPtr.add(offset));
+
+			Address currentPtr = methodPtr;
+			for (int i = 0; i < nMethods; i++) {
+				this.createData(currentPtr, jniNativeMethodType);
+				currentPtr = currentPtr.add(jniNativeMethodType.getLength());
+			}
 		}
 	}
 
