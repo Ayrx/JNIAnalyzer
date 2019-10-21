@@ -100,6 +100,9 @@ public class RegisterNatives extends GhidraScript {
 			long b2 = this.processVarnode((VarnodeAST) parent.getInput(1));
 			long c2 = this.processVarnode((VarnodeAST) parent.getInput(2));
 			return a2 + b2 * c2;
+		case PcodeOp.INDIRECT:
+			// Not quite sure if an INDIRECT call should be handled in this way...
+			return this.processVarnode((VarnodeAST) parent.getInput(0));
 		default:
 			throw new UnsupportedOperationException("Unrecognized op: " + parent.getMnemonic());
 		}
