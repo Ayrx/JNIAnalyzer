@@ -9,4 +9,6 @@ return types, parameter names and parameter types that was already in place.
 If you want the script to skip a specific function, annotate it with
 `JNIAnalyzer:IGNORE` in the comment.
 
+Write-up: [Ghidra Plugin: JNIAnalyzer](https://www.ayrx.me/ghidra-jnianalyzer)
+
 [FindNativeJNIMethods]: https://github.com/Ayrx/FindNativeJNIMethods
