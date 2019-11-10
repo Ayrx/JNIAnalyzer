@@ -9,6 +9,7 @@
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Set;
 
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.decompiler.DecompileResults;
@@ -18,6 +19,7 @@ import ghidra.program.model.data.DataType;
 import ghidra.program.model.listing.Data;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.pcode.HighFunction;
+import ghidra.program.model.pcode.HighParam;
 import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.model.pcode.PcodeOpAST;
 import ghidra.program.model.pcode.VarnodeAST;
@@ -27,10 +29,29 @@ import me.ayrx.apat.decompiler.DecompilerHelper;
 public class RegisterNatives extends GhidraScript {
 
 	private DecompInterface decomplib;
+	private DataType jniNativeMethodType;
 
 	class UnsupportedOperationException extends Exception {
 		public UnsupportedOperationException(String message) {
 			super(message);
+		}
+	}
+
+	class VarnodeIsParamException extends Exception {
+		public VarnodeAST n;
+
+		public VarnodeIsParamException(VarnodeAST n) {
+			this.n = n;
+		}
+	}
+
+	class MethodsArrayPair {
+		public long addr;
+		public long length;
+
+		public MethodsArrayPair(long addr, long length) {
+			this.addr = addr;
+			this.length = length;
 		}
 	}
 
@@ -40,7 +61,7 @@ public class RegisterNatives extends GhidraScript {
 		if (d.length != 1) {
 			println("[-] Error: Please import jni_all.h first.");
 		}
-		DataType jniNativeMethodType = d[0];
+		this.jniNativeMethodType = d[0];
 
 		this.decomplib = DecompilerHelper.defaultDecompiler();
 		this.decomplib.openProgram(this.currentProgram);
@@ -65,27 +86,60 @@ public class RegisterNatives extends GhidraScript {
 		}
 
 		println("[+] Found " + String.valueOf(registerNativesList.size()) + " calls to RegisterNatives");
-
 		for (PcodeOpAST pc : registerNativesList) {
-			VarnodeAST node = (VarnodeAST) pc.getInput(3);
-			Address methodPtr = this.toAddr(this.processVarnode(node));
-			println("[+] Applying JNiNativeMethod datatype to: " + methodPtr.toString());
+			println(pc.toString());
 
-			node = (VarnodeAST) pc.getInput(4);
-			if (!node.isConstant()) {
-				println("[-] Error: nMethods varnode is not a constant.");
-				continue;
+			// Trace the origin of the `methods` param of the RegisterNatives call.
+			VarnodeAST methodsNode = (VarnodeAST) pc.getInput(3);
+			VarnodeAST nMethodsNode = (VarnodeAST) pc.getInput(4);
+
+			try {
+				// Happy case where the `methods` ends up at a constant.
+				long methods = this.processVarnode(methodsNode);
+
+				// If `methods` is not a parameter, `nMethods` is most likely to be a
+				// constant as well.
+				long nMethods = this.processVarnode(nMethodsNode);
+
+				this.applyRegisterNatives(methods, nMethods);
+			} catch (VarnodeIsParamException e) {
+				// Case where `methods` is a parameter to the current function.
+				VarnodeAST methodsParam = e.n;
+				VarnodeAST nMethodsParam = null;
+
+				try {
+					this.processVarnode(nMethodsNode);
+				} catch (VarnodeIsParamException ee) {
+					// Logically this should always happen. It is very weird if `methods` is from a
+					// param but `nMethods` is a constant...
+					nMethodsParam = ee.n;
+				}
+
+				ArrayList<MethodsArrayPair> params = this.processParam(methodsParam, nMethodsParam);
+				for (MethodsArrayPair i : params) {
+					long methods = i.addr;
+					long nMethods = i.length;
+
+					this.applyRegisterNatives(methods, nMethods);
+				}
+
+				return;
 			}
-			long nMethods = node.getOffset();
+		}
+	}
 
-			long offset = (jniNativeMethodType.getLength() * nMethods) - this.currentProgram.getDefaultPointerSize();
-			this.clearListing(methodPtr, methodPtr.add(offset));
+	private void applyRegisterNatives(long methods, long nMethods) throws Exception {
+		Address methodPtr = this.toAddr(methods);
 
-			Address currentPtr = methodPtr;
-			for (int i = 0; i < nMethods; i++) {
-				this.createData(currentPtr, jniNativeMethodType);
-				currentPtr = currentPtr.add(jniNativeMethodType.getLength());
-			}
+		println("[+] Applying datatype to " + methodPtr.toString() + ". Length: " + String.valueOf(nMethods) + ".");
+
+		long offset = (jniNativeMethodType.getLength() * nMethods) - this.currentProgram.getDefaultPointerSize();
+		this.clearListing(methodPtr, methodPtr.add(offset));
+
+		Address currentPtr = methodPtr;
+		for (int i = 0; i < nMethods; i++) {
+			this.createData(currentPtr, jniNativeMethodType);
+			currentPtr = currentPtr.add(jniNativeMethodType.getLength());
 		}
 	}
 
@@ -96,9 +150,13 @@ public class RegisterNatives extends GhidraScript {
 	 * We recursively traverse the AST until we find the Varnode that is either a
 	 * constant or does not have a parent which should indicate a stopping point.
 	 */
-	private long processVarnode(VarnodeAST node) throws UnsupportedOperationException {
+	private long processVarnode(VarnodeAST node) throws UnsupportedOperationException, VarnodeIsParamException {
 		if (node.isConstant()) {
 			return node.getOffset();
+		}
+
+		if (node.getHigh() instanceof HighParam) {
+			throw new VarnodeIsParamException(node);
 		}
 
 		PcodeOpAST parent = (PcodeOpAST) node.getDef();
@@ -127,6 +185,58 @@ public class RegisterNatives extends GhidraScript {
 		default:
 			throw new UnsupportedOperationException("Unrecognized op: " + parent.getMnemonic());
 		}
+	}
+
+	private ArrayList<MethodsArrayPair> processParam(VarnodeAST methodsNode, VarnodeAST nMethodsNode)
+			throws UnsupportedOperationException {
+		HighParam methodsParam = (HighParam) methodsNode.getHigh();
+		HighParam nMethodsParam = (HighParam) nMethodsNode.getHigh();
+
+		int methodsSlot = methodsParam.getSlot();
+		int nMethodsSlot = nMethodsParam.getSlot();
+
+		Function f = methodsNode.getHigh().getHighFunction().getFunction();
+		Address fAddress = f.getEntryPoint();
+		Set<Function> callers = f.getCallingFunctions(this.monitor);
+
+		ArrayList<MethodsArrayPair> ret = new ArrayList<MethodsArrayPair>();
+		for (Function fc : callers) {
+			DecompileResults dRes = this.decomplib.decompileFunction(fc, 60, this.monitor);
+			HighFunction hF = dRes.getHighFunction();
+			Iterator<PcodeOpAST> ops = hF.getPcodeOps();
+			while (ops.hasNext() && !monitor.isCancelled()) {
+				PcodeOpAST pcodeOpAST = ops.next();
+				if (pcodeOpAST.getOpcode() == PcodeOp.CALL && pcodeOpAST.getInput(0).getAddress().equals(fAddress)) {
+
+					methodsNode = (VarnodeAST) pcodeOpAST.getInput(3);
+					nMethodsNode = (VarnodeAST) pcodeOpAST.getInput(4);
+
+					try {
+						// Happy case where the `methods` ends up at a constant.
+						long methods = this.processVarnode(methodsNode);
+						long nMethods = this.processVarnode(nMethodsNode);
+						MethodsArrayPair i = new MethodsArrayPair(methods, nMethods);
+						ret.add(i);
+					} catch (VarnodeIsParamException e) {
+						// Case where `methods` is a parameter to the current function.
+						VarnodeAST methodsParamNext = e.n;
+						VarnodeAST nMethodsParamNext = null;
+
+						try {
+							this.processVarnode(nMethodsNode);
+						} catch (VarnodeIsParamException ee) {
+							// Logically this should always happen. It is very weird if `methods` is from a
+							// param but `nMethods` is a constant...
+							nMethodsParamNext = ee.n;
+						}
+
+						ret.addAll(this.processParam(methodsParamNext, nMethodsParamNext));
+					}
+				}
+			}
+		}
+
+		return ret;
 	}
 
 	private boolean checkRegisterNatives(VarnodeAST node) throws UnsupportedOperationException {
