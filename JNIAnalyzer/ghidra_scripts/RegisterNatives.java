@@ -85,10 +85,9 @@ public class RegisterNatives extends GhidraScript {
 			}
 		}
 
-		println("[+] Found " + String.valueOf(registerNativesList.size()) + " calls to RegisterNatives");
+		println("[+] Found " + String.valueOf(registerNativesList.size()) + " calls to RegisterNatives at "
+				+ currentFunction.getName());
 		for (PcodeOpAST pc : registerNativesList) {
-			println(pc.toString());
-
 			// Trace the origin of the `methods` param of the RegisterNatives call.
 			VarnodeAST methodsNode = (VarnodeAST) pc.getInput(3);
 			VarnodeAST nMethodsNode = (VarnodeAST) pc.getInput(4);
@@ -101,8 +100,12 @@ public class RegisterNatives extends GhidraScript {
 				// constant as well.
 				long nMethods = this.processVarnode(nMethodsNode);
 
+				Address methodsAddr = this.toAddr(methods);
+				println("Found: " + methodsAddr.toString() + ". Length: " + String.valueOf(nMethods));
+				println("[+] Applying `JNINativeMethod` datatype.");
 				this.applyRegisterNatives(methods, nMethods);
 			} catch (VarnodeIsParamException e) {
+				println("[+] `methods` traces back to a parameter.");
 				// Case where `methods` is a parameter to the current function.
 				VarnodeAST methodsParam = e.n;
 				VarnodeAST nMethodsParam = null;
@@ -116,11 +119,10 @@ public class RegisterNatives extends GhidraScript {
 				}
 
 				ArrayList<MethodsArrayPair> params = this.processParam(methodsParam, nMethodsParam);
-				for (MethodsArrayPair i : params) {
-					long methods = i.addr;
-					long nMethods = i.length;
 
-					this.applyRegisterNatives(methods, nMethods);
+				println("[+] Applying `JNINativeMethod` datatype.");
+				for (MethodsArrayPair i : params) {
+					this.applyRegisterNatives(i.addr, i.length);
 				}
 
 				return;
@@ -130,9 +132,6 @@ public class RegisterNatives extends GhidraScript {
 
 	private void applyRegisterNatives(long methods, long nMethods) throws Exception {
 		Address methodPtr = this.toAddr(methods);
-
-		println("[+] Applying datatype to " + methodPtr.toString() + ". Length: " + String.valueOf(nMethods) + ".");
-
 		long offset = (jniNativeMethodType.getLength() * nMethods) - this.currentProgram.getDefaultPointerSize();
 		this.clearListing(methodPtr, methodPtr.add(offset));
 
@@ -199,8 +198,10 @@ public class RegisterNatives extends GhidraScript {
 		Address fAddress = f.getEntryPoint();
 		Set<Function> callers = f.getCallingFunctions(this.monitor);
 
+		println("[+] " + f.getName() + " has " + String.valueOf(callers.size()) + " callers.");
 		ArrayList<MethodsArrayPair> ret = new ArrayList<MethodsArrayPair>();
 		for (Function fc : callers) {
+			println("[+] Processing: " + fc.getName());
 			DecompileResults dRes = this.decomplib.decompileFunction(fc, 60, this.monitor);
 			HighFunction hF = dRes.getHighFunction();
 			Iterator<PcodeOpAST> ops = hF.getPcodeOps();
@@ -215,9 +216,14 @@ public class RegisterNatives extends GhidraScript {
 						// Happy case where the `methods` ends up at a constant.
 						long methods = this.processVarnode(methodsNode);
 						long nMethods = this.processVarnode(nMethodsNode);
+						Address methodsAddr = this.toAddr(methods);
+
+						println("Found: " + methodsAddr.toString() + ". Length: " + String.valueOf(nMethods));
+
 						MethodsArrayPair i = new MethodsArrayPair(methods, nMethods);
 						ret.add(i);
 					} catch (VarnodeIsParamException e) {
+						println("[+] `methods` traces back to a parameter.");
 						// Case where `methods` is a parameter to the current function.
 						VarnodeAST methodsParamNext = e.n;
 						VarnodeAST nMethodsParamNext = null;
