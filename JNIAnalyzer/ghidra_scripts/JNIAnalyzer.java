@@ -183,11 +183,19 @@ public class JNIAnalyzer extends GhidraScript {
 	private void applyJNIOnLoadSignature(Function function) throws DuplicateNameException, InvalidInputException {
 		println("Modified " + function.getName());
 
-		Parameter arg0 = function.getParameter(0);
-		arg0.setName("vm", SourceType.USER_DEFINED);
-		arg0.setDataType(this.manager.getDataType("/jni_all.h/JavaVM *"), SourceType.USER_DEFINED);
+		Parameter[] params = new Parameter[2]; // + 2 to accomodate env and thiz
 
-		function.setReturnType(this.manager.getDataType("/jni_all.h/jint"), SourceType.USER_DEFINED);
+		params[0] = new ParameterImpl("vm", this.manager.getDataType("/jni_all.h/JavaVM *"), this.currentProgram,
+				SourceType.USER_DEFINED);
+
+		params[1] = new ParameterImpl("reserved", this.manager.getDataType("/void *"), this.currentProgram,
+				SourceType.USER_DEFINED);
+
+		Parameter returnType = new ReturnParameterImpl(this.manager.getDataType("/jni_all.h/jint"),
+				this.currentProgram);
+
+		function.updateFunction(null, returnType, Function.FunctionUpdateType.DYNAMIC_STORAGE_FORMAL_PARAMS, true,
+				SourceType.USER_DEFINED, params);
 	}
 
 	private String generateNativeMethodName(MethodInformation methodInfo, boolean isOverloaded) {
