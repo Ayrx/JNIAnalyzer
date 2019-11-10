@@ -79,7 +79,8 @@ public class JNIAnalyzer extends GhidraScript {
 				}
 			}
 
-			if (function.getName().equals("JNI_OnLoad")) {
+			String functionName = function.getName();
+			if (functionName.equals("JNI_OnLoad") || functionName.equals("JNI_OnUnload")) {
 				this.applyJNIOnLoadSignature(function);
 			}
 
@@ -181,7 +182,7 @@ public class JNIAnalyzer extends GhidraScript {
 	}
 
 	private void applyJNIOnLoadSignature(Function function) throws DuplicateNameException, InvalidInputException {
-		println("Modified " + function.getName());
+		println("Applying signature to " + function.getName());
 
 		Parameter[] params = new Parameter[2]; // + 2 to accomodate env and thiz
 
@@ -191,8 +192,12 @@ public class JNIAnalyzer extends GhidraScript {
 		params[1] = new ParameterImpl("reserved", this.manager.getDataType("/void *"), this.currentProgram,
 				SourceType.USER_DEFINED);
 
-		Parameter returnType = new ReturnParameterImpl(this.manager.getDataType("/jni_all.h/jint"),
-				this.currentProgram);
+		Parameter returnType;
+		if (function.getName().equals("JNI_OnLoad")) {
+			returnType = new ReturnParameterImpl(this.manager.getDataType("/jni_all.h/jint"), this.currentProgram);
+		} else {
+			returnType = new ReturnParameterImpl(this.manager.getDataType("/void"), this.currentProgram);
+		}
 
 		function.updateFunction(null, returnType, Function.FunctionUpdateType.DYNAMIC_STORAGE_FORMAL_PARAMS, true,
 				SourceType.USER_DEFINED, params);
