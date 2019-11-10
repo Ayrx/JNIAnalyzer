@@ -184,7 +184,7 @@ public class JNIAnalyzer extends GhidraScript {
 	private void applyJNIOnLoadSignature(Function function) throws DuplicateNameException, InvalidInputException {
 		println("Applying signature to " + function.getName());
 
-		Parameter[] params = new Parameter[2]; // + 2 to accomodate env and thiz
+		Parameter[] params = new Parameter[2];
 
 		params[0] = new ParameterImpl("vm", this.manager.getDataType("/jni_all.h/JavaVM *"), this.currentProgram,
 				SourceType.USER_DEFINED);
