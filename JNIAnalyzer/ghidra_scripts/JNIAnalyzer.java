@@ -10,20 +10,13 @@
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
-import generic.jar.ResourceFile;
-import ghidra.app.plugin.core.datamgr.archive.Archive;
-import ghidra.app.plugin.core.datamgr.archive.DuplicateIdException;
 import ghidra.app.script.GhidraScript;
-import ghidra.app.services.DataTypeManagerService;
-import ghidra.framework.Application;
-import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.data.DataTypeManager;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Parameter;
@@ -32,10 +25,12 @@ import ghidra.program.model.listing.ReturnParameterImpl;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
+import me.ayrx.jnianalyzer.JNIUtils;
 
 public class JNIAnalyzer extends GhidraScript {
 
 	DataTypeManager manager;
+	JNIUtils jniUtils;
 
 	private class MethodInformation {
 		private String methodName;
@@ -51,8 +46,10 @@ public class JNIAnalyzer extends GhidraScript {
 
 	@Override
 	public void run() throws Exception {
+		this.jniUtils = new JNIUtils(state, this);
+
 		println("[+] Import jni_all.h...");
-		this.manager = this.getDataTypeManageFromArchiveFile();
+		this.manager = this.jniUtils.getDataTypeManageFromArchiveFile();
 
 		File infoFile = this.askFile("Select method argument file", "Open");
 		Gson gson = new Gson();
@@ -161,24 +158,6 @@ public class JNIAnalyzer extends GhidraScript {
 		f.updateFunction(null, returnType, Function.FunctionUpdateType.DYNAMIC_STORAGE_FORMAL_PARAMS, true,
 				SourceType.USER_DEFINED, params);
 
-	}
-
-	private DataTypeManager getDataTypeManageFromArchiveFile() throws IOException, DuplicateIdException {
-		PluginTool tool = this.state.getTool();
-		DataTypeManagerService service = tool.getService(DataTypeManagerService.class);
-
-		// Look for an already open "jni_all" archive.
-		DataTypeManager[] managers = service.getDataTypeManagers();
-		for (DataTypeManager m : managers) {
-			if (m.getName().equals("jni_all")) {
-				return m;
-			}
-		}
-
-		// If an existing archive isn't found, open it from the file.
-		ResourceFile jniArchiveFile = Application.getModuleDataFile("JNIAnalyzer", "jni_all.gdt");
-		Archive jniArchive = service.openArchive(jniArchiveFile.getFile(true), false);
-		return jniArchive.getDataTypeManager();
 	}
 
 	private void applyJNIOnLoadSignature(Function function) throws DuplicateNameException, InvalidInputException {

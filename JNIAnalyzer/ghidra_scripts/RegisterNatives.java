@@ -25,11 +25,13 @@ import ghidra.program.model.pcode.PcodeOpAST;
 import ghidra.program.model.pcode.VarnodeAST;
 import ghidra.program.model.scalar.Scalar;
 import me.ayrx.apat.decompiler.DecompilerHelper;
+import me.ayrx.jnianalyzer.JNIUtils;
 
 public class RegisterNatives extends GhidraScript {
 
 	private DecompInterface decomplib;
 	private DataType jniNativeMethodType;
+	private JNIUtils jniUtils;
 
 	class UnsupportedOperationException extends Exception {
 		public UnsupportedOperationException(String message) {
@@ -57,11 +59,7 @@ public class RegisterNatives extends GhidraScript {
 
 	@Override
 	public void run() throws Exception {
-		DataType[] d = this.getDataTypes("JNINativeMethod");
-		if (d.length != 1) {
-			println("[-] Error: Please import jni_all.h first.");
-		}
-		this.jniNativeMethodType = d[0];
+		this.jniUtils = new JNIUtils(state, this);
 
 		this.decomplib = DecompilerHelper.defaultDecompiler();
 		this.decomplib.openProgram(this.currentProgram);
@@ -103,7 +101,7 @@ public class RegisterNatives extends GhidraScript {
 				Address methodsAddr = this.toAddr(methods);
 				println("Found: " + methodsAddr.toString() + ". Length: " + String.valueOf(nMethods));
 				println("[+] Applying `JNINativeMethod` datatype.");
-				this.applyRegisterNatives(methods, nMethods);
+				this.jniUtils.applyRegisterNatives(methodsAddr, nMethods);
 			} catch (VarnodeIsParamException e) {
 				println("[+] `methods` traces back to a parameter.");
 				// Case where `methods` is a parameter to the current function.
@@ -122,23 +120,11 @@ public class RegisterNatives extends GhidraScript {
 
 				println("[+] Applying `JNINativeMethod` datatype.");
 				for (MethodsArrayPair i : params) {
-					this.applyRegisterNatives(i.addr, i.length);
+					this.jniUtils.applyRegisterNatives(this.toAddr(i.addr), i.length);
 				}
 
 				return;
 			}
-		}
-	}
-
-	private void applyRegisterNatives(long methods, long nMethods) throws Exception {
-		Address methodPtr = this.toAddr(methods);
-		long offset = (jniNativeMethodType.getLength() * nMethods) - this.currentProgram.getDefaultPointerSize();
-		this.clearListing(methodPtr, methodPtr.add(offset));
-
-		Address currentPtr = methodPtr;
-		for (int i = 0; i < nMethods; i++) {
-			this.createData(currentPtr, jniNativeMethodType);
-			currentPtr = currentPtr.add(jniNativeMethodType.getLength());
 		}
 	}
 
