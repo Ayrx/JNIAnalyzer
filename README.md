@@ -1,8 +1,14 @@
 # JNIAnalyzer
 
-This Ghidra extension parses the output of
-[FindNativeJNIMethods][FindNativeJNIMethods] and applies the function signature
-to all matching functions in the binary.
+This Ghidra extension contains various scripts that assists in analyzing
+Android NDK applications.
+
+# Scripts
+
+### JNIAnalyzer.java
+
+This script parses the output of [FindNativeJNIMethods][FindNativeJNIMethods]
+and applies the function signature to all matching functions in the binary.
 
 Running the `JNIAnalyzer.java` extension script will overwrite any function
 return types, parameter names and parameter types that was already in place.
@@ -11,9 +17,14 @@ If you want the script to skip a specific function, annotate it with
 
 Write-up: [Ghidra Plugin: JNIAnalyzer][JNIAnalyzer_blog]
 
-## Experimental Scripts
+### TraceRegisterNatives.java
 
-### RegisterNatives.java
+This script parses the output of [trace_registernatives][trace_registernatives]
+applies the results to the Ghidra project.
+
+Write up coming soon.
+
+### RegisterNatives.java (Experimental)
 
 This script looks for calls to `RegisterNatives` within a function and sets
 the `JNINativeMethod` structure type in the appropriate locations within the
@@ -23,4 +34,5 @@ the function is usually resolved at runtime.
 This script is currently very much experimental / use at your own risk.
 
 [FindNativeJNIMethods]: https://github.com/Ayrx/FindNativeJNIMethods
+[trace_registernatives]: https://github.com/Ayrx/trace_registernatives
 [JNIAnalyzer_blog]: https://www.ayrx.me/ghidra-jnianalyzer

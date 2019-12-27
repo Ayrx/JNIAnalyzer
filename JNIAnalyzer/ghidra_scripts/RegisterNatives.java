@@ -101,7 +101,7 @@ public class RegisterNatives extends GhidraScript {
 				Address methodsAddr = this.toAddr(methods);
 				println("Found: " + methodsAddr.toString() + ". Length: " + String.valueOf(nMethods));
 				println("[+] Applying `JNINativeMethod` datatype.");
-				this.jniUtils.applyRegisterNatives(methodsAddr, nMethods);
+				this.jniUtils.applyJNINativeMethodType(methodsAddr, nMethods);
 			} catch (VarnodeIsParamException e) {
 				println("[+] `methods` traces back to a parameter.");
 				// Case where `methods` is a parameter to the current function.
@@ -120,7 +120,7 @@ public class RegisterNatives extends GhidraScript {
 
 				println("[+] Applying `JNINativeMethod` datatype.");
 				for (MethodsArrayPair i : params) {
-					this.jniUtils.applyRegisterNatives(this.toAddr(i.addr), i.length);
+					this.jniUtils.applyJNINativeMethodType(this.toAddr(i.addr), i.length);
 				}
 
 				return;

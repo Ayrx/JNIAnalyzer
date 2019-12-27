@@ -10,6 +10,7 @@ import ghidra.app.services.DataTypeManagerService;
 import ghidra.framework.Application;
 import ghidra.program.flatapi.FlatProgramAPI;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.data.ArrayDataType;
 import ghidra.program.model.data.DataType;
 import ghidra.program.model.data.DataTypeManager;
 
@@ -40,18 +41,16 @@ public class JNIUtils {
 		return jniArchive.getDataTypeManager();
 	}
 
-	public void applyRegisterNatives(Address methods, long nMethods) throws Exception {
+	public void applyJNINativeMethodType(Address methods, long nMethods) throws Exception {
 		DataTypeManager manager = this.getDataTypeManageFromArchiveFile();
 		DataType jniNativeMethodType = manager.getDataType("/jni_all.h/JNINativeMethod");
 
-		long offset = (jniNativeMethodType.getLength() * nMethods) - api.getCurrentProgram().getDefaultPointerSize();
-		api.clearListing(methods, methods.add(offset));
+		long offset = (jniNativeMethodType.getLength() * nMethods)
+				- this.api.getCurrentProgram().getDefaultPointerSize();
+		this.api.clearListing(methods, methods.add(offset));
 
-		Address currentPtr = methods;
-		for (int i = 0; i < nMethods; i++) {
-			api.createData(currentPtr, jniNativeMethodType);
-			currentPtr = currentPtr.add(jniNativeMethodType.getLength());
-		}
+		this.api.createData(methods,
+				new ArrayDataType(jniNativeMethodType, (int) nMethods, jniNativeMethodType.getLength()));
 	}
 
 }
