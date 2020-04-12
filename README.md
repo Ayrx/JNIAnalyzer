@@ -7,8 +7,9 @@ Android NDK applications.
 
 ### JNIAnalyzer.java
 
-This script parses the output of [FindNativeJNIMethods][FindNativeJNIMethods]
-and applies the function signature to all matching functions in the binary.
+This script uses the [JADX][jadx] decompiler to extract the function signature
+of all native methods in an APK file and applies the signature to all
+matching fnuctions in the binary.
 
 Running the `JNIAnalyzer.java` extension script will overwrite any function
 return types, parameter names and parameter types that was already in place.
@@ -36,3 +37,4 @@ This script is currently very much experimental / use at your own risk.
 [FindNativeJNIMethods]: https://github.com/Ayrx/FindNativeJNIMethods
 [trace_registernatives]: https://github.com/Ayrx/trace_registernatives
 [JNIAnalyzer_blog]: https://www.ayrx.me/ghidra-jnianalyzer
+[jadx]: https://github.com/skylot/jadx

@@ -9,12 +9,8 @@
 //@toolbar
 
 import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
 
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.data.DataTypeManager;
@@ -26,23 +22,13 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.util.exception.DuplicateNameException;
 import ghidra.util.exception.InvalidInputException;
 import me.ayrx.jnianalyzer.JNIUtils;
+import me.ayrx.jnianalyzer.MethodInformation;
+import me.ayrx.jnianalyzer.ParseJNIMethods;
 
 public class JNIAnalyzer extends GhidraScript {
 
 	DataTypeManager manager;
 	JNIUtils jniUtils;
-
-	private class MethodInformation {
-		private String methodName;
-		private String argumentSignature;
-		private ArrayList<String> argumentTypes;
-		private String returnType;
-		private boolean isStatic;
-	}
-
-	private class NativeMethodsList {
-		ArrayList<MethodInformation> methods = new ArrayList<>();
-	}
 
 	@Override
 	public void run() throws Exception {
@@ -51,11 +37,8 @@ public class JNIAnalyzer extends GhidraScript {
 		println("[+] Import jni_all.h...");
 		this.manager = this.jniUtils.getDataTypeManageFromArchiveFile();
 
-		File infoFile = this.askFile("Select method argument file", "Open");
-		Gson gson = new Gson();
-		JsonReader reader = new JsonReader(new FileReader(infoFile));
-
-		NativeMethodsList methodsList = gson.fromJson(reader, NativeMethodsList.class);
+		File apkFile = this.askFile("Select APK file", "Open");
+		ArrayList<MethodInformation> methodsList = ParseJNIMethods.parse(apkFile);
 
 		// Iterate through all functions in the binary and look for the ones starting
 		// with "Java_". Ignore the functions marked with "JNIAnalyzer:IGNORE".
@@ -95,7 +78,7 @@ public class JNIAnalyzer extends GhidraScript {
 		// form the name mangling.
 		HashMap<String, ArrayList<MethodInformation>> methodMap = new HashMap<String, ArrayList<MethodInformation>>();
 
-		for (MethodInformation method : methodsList.methods) {
+		for (MethodInformation method : methodsList) {
 			if (methodMap.containsKey(method.methodName)) {
 				methodMap.get(method.methodName).add(method);
 			} else {
