@@ -3,6 +3,8 @@
 This Ghidra extension contains various scripts that assists in analyzing
 Android NDK applications.
 
+A Binary Ninja version of this plugin is also [available](https://github.com/Ayrx/binja-JNIAnalyzer)
+
 ## How to install the extension
 1. Clone this repository (`git clone https://github.com/Ayrx/JNIAnalyzer.git`)
 2. In the cloned repository folder, use the command `gradle -PGHIDRA_INSTALL_DIR=<YOUR GHIDRA INSTALLATION DIRECTORY>`; specifying your Ghidra installation directory
