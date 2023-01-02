@@ -34,7 +34,7 @@ public class JNIAnalyzer extends GhidraScript {
 	public void run() throws Exception {
 		this.jniUtils = new JNIUtils(state, this);
 
-		println("[+] Import jni_all.h...");
+		println("[+] Import apk...");
 		this.manager = this.jniUtils.getDataTypeManageFromArchiveFile();
 
 		File apkFile = this.askFile("Select APK file", "Open");
